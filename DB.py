@@ -1,6 +1,7 @@
+from sqlalchemy import create_engine
 import pandas as pd
-from sqlalchemy import create_engine , text
 import pyodbc
+import numpy
 
 SERVER = r"DESKTOP-572CNE4"
 DATABASE = "WB41"
@@ -9,15 +10,16 @@ PWD = "1234"
 
 #데이터베이스 초기 설정
 Conn = f"Driver={{SQL Server}};Server={SERVER};Database={DATABASE};UID={UID};PWD={PWD};"
+engine = create_engine(rf"mssql+pyodbc://{UID}:{PWD}@{SERVER}/{DATABASE}?driver=ODBC+Driver+17+for+SQL+Server")
 
-engine = create_engine(r"mssql+pyodbc://aaa:1234@DESKTOP-572CNE4/WB41?driver=ODBC+Driver+17+for+SQL+Server")
 
-TABLE_A = "temp1"
-TABLE_B = "temp2"
-TABLE_C = "temp3"
+TABLE_A = "User"            # 회원정보 
+TABLE_B = "Exercise"        # 운동정보 ( 코드 / 운동 이름)
+TABLE_C = "BeforeInfo"      # 이전 운동 정보
 
 # 테이블 생성
 with engine.begin() as conn:
+    # TABLE_A
     conn.exec_driver_sql(f'''
         IF OBJECT_ID('dbo.{TABLE_A}', 'U') IS NULL
         CREATE TABLE dbo.{TABLE_A} (
@@ -27,16 +29,17 @@ with engine.begin() as conn:
         )
         ''')
     
-    
+    # TABLE_B
     conn.exec_driver_sql(f'''
         IF OBJECT_ID('dbo.{TABLE_B}', 'U') IS NULL            
         CREATE TABLE dbo.{TABLE_B} (
         exercise_id INT IDENTITY(1,1) PRIMARY KEY , 
-        exercise_name VARCHAR(50)           
+        exercise_name VARCHAR(50),
+        exercise_npy VARBINARY(MAX)           
         )
         ''')
     
-            
+    # TABLE_C  
     conn.exec_driver_sql(f'''
         IF OBJECT_ID('dbo.{TABLE_C}', 'U') IS NULL
         CREATE TABLE dbo.{TABLE_C} (
@@ -52,7 +55,7 @@ with engine.begin() as conn:
         ''')     
  
 # 비동기 ( 회원 가입)                                 
-def InsertUser(id , pw , name):
+def Insert_User(id , pw , name):
     try:                
         sql = f"Insert into {TABLE_A} Values ( ?, ?, ?)"
         params = (id , pw ,name)
@@ -71,7 +74,6 @@ def InsertUser(id , pw , name):
 # 비동기 ( 로그인 ) 
 # 반환값 -> 유저 닉네임 , 이전 운동기록       
 def Get_LoginUser(id , pw):
-    print(id , pw)
     sql = f"SELECT name FROM {TABLE_A} WHERE id = ? AND pw = ?"
     params = (id,pw)
     
@@ -91,11 +93,13 @@ def Get_LoginUser(id , pw):
         return row[0] , json_str
     else:
         return None
-        
-def Insert_BeforeInfo(id , data : str):
+
+# id -> 과거 정보
+# !! 다시 제작 !!
+def Insert_BeforeInfo(id , accuracies : str):
     try:
     
-        df = pd.read_json(data)
+        df = pd.read_json(accuracies)
         
         sql = (f'''
                     BEGIN
@@ -118,9 +122,25 @@ def Insert_BeforeInfo(id , data : str):
                 
                 params = { "type" : row['type'] , "id" : row['id'] , "count" : row['count'] , "date" : row['date'] }
                 conn.execute( sql , params)
+                
     except Exception:
         raise
         
+# 이름 -> Npy 파일
+def Get_NpyByName(name):
+    sql = f"SELECT exercise_npy FROM {TABLE_B} WHERE exercise_name = ?"
+    params = (name ,)
+    
+    with pyodbc.connect(Conn) as conn:
+        cursor = conn.cursor()
+        cursor.execute(sql , params)
 
+        npy_byte = cursor.fetchone()    
+        return numpy.load(npy_byte)  
+
+
+# !! 운동 npy 초기 값 세팅 제작예정 !!
+def Insert_Exercise():
+    return
     
     
