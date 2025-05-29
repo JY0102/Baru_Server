@@ -1,20 +1,24 @@
-from fastapi import FastAPI , HTTPException , Request
+from fastapi import FastAPI , HTTPException , Request , Response
 import asyncio
 
 import DB
 
-# uvicorn main:app --host 0.0.0.0 --port 80 --reload
+# uvicorn main:app --host 0.0.0.0 --port 6000 --reload
 app = FastAPI()
 
 
 # 운동 이름 -> npy
-@app.get("/npy/")
-async def Get_Npy(name):        
-    loop = asyncio.get_running_loop()    
-    result = await loop.run_in_executor(None, DB.Get_NpyByName, name)                
+@app.get("/get/type/")
+async def Get_Npy(exercise):        
+    print(exercise)
     
-    if not result:
+    loop = asyncio.get_running_loop()    
+    result = await loop.run_in_executor(None, DB.Get_NpyByName, exercise)                
+    
+    if not result or len(result) == 0:
         raise HTTPException(status_code=401, detail="Npy Failed")
+    
+    return Response(content=result, media_type="application/octet-stream")
 
     
 # 회원 가입
