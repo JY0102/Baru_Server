@@ -3,7 +3,7 @@ import asyncio
 
 import DB
 
-# uvicorn main:app --host 0.0.0.0 --port 6000 --reload
+# uvicorn main:app --host 220.90.180.114:80 --reload
 app = FastAPI()
 
 
@@ -19,43 +19,79 @@ async def Get_Npy(exercise):
         raise HTTPException(status_code=401, detail="Npy Failed")
     
     return Response(content=result, media_type="application/octet-stream")
-
     
 # 회원 가입
 @app.post("/user/insert/")
 async def Insert_User(id : str , pw : str , name : str):   
-    loop = asyncio.get_running_loop()    
-    result = await loop.run_in_executor(None, DB.Insert_User, id , pw , name)                
+    try:
+        loop = asyncio.get_running_loop()    
+        await loop.run_in_executor(None, DB.Insert_User, id , pw , name)                
+        
     
-    if not result:
-        raise HTTPException(status_code=402, detail="Insert Failed")
+    except HTTPException :
+        raise 
+    except Exception as e:
+        raise HTTPException(status_code=401 , detail= str(e))
     
 # 로그인
 @app.get("/user/login/")
 async def Login_User(id : str , pw : str):
-    loop = asyncio.get_running_loop()    
-    nickname , strjson =  await loop.run_in_executor(None,lambda: DB.Get_LoginUser(id , pw))                
-    
-    if nickname and strjson:
-        return {"nickname": nickname, "data": strjson}
-    else:
-        raise HTTPException(status_code=402, detail="Login Failed")
+    try:
         
+        loop = asyncio.get_running_loop()    
+        nickname , strjson =  await loop.run_in_executor(None, DB.Get_LoginUser , id , pw)                
+                
+        return {"nickname": nickname, "data": strjson}
+            
+    except HTTPException :
+        raise 
+    except Exception as e:
+        raise HTTPException(status_code= 401 , detail= str(e))
+        
+# 목표치 저장
+@app.post("/data/insert/beforeinfo")
+async def Post_BeforeInfo(request: Request):
+    try:
+        body = await request.json()
+        
+        baru_id = body.get("baru_id")
+        
+        goalA = body.get("goalA")
+        goalB = body.get("goalB")
+        goalC = body.get("goalC")
+            
+        #Db 저장
+        loop = asyncio.get_running_loop()    
+        await loop.run_in_executor(None, DB.Insert_BeforeInfo, baru_id , goalA , goalB , goalC)      
+    
+    except Exception:
+        raise HTTPException(status_code=403, detail="Goal Failed")
 
 # 운동 끝난 정보 저장
-@app.post("/user/beforeinfo/")
-async def Post_BeforeInfo(request: Request):
+@app.post("/data/insert/play/")
+async def Post_Play(request: Request):
     
     try:
         body = await request.json()
         
-        id = body.get("id")
-        accuracies = body.get("Accuracies", [])
+        baru_id = body.get("baru_id")
+        date = body.get("date")
+        name = body.get("name")
+        count = int(body.get("count"))
+        accuracies = body.get("accuracies")
     
-        #Db 저장
+        #DB 저장
         loop = asyncio.get_running_loop()    
-        await loop.run_in_executor(None, DB.Insert_BeforeInfo, id ,accuracies )      
-                  
+        await loop.run_in_executor(None, DB.Insert_Play, baru_id ,date , name , count , accuracies )      
+            
     except Exception:
         raise HTTPException(status_code=403, detail="BeforeInfo Failed")
    
+@app.get("/data/get")
+async def Get_BeforeInfo(baru_id : str):
+    loop = asyncio.get_running_loop()    
+    result =  await loop.run_in_executor(None, DB.Get_BeforeInfo, baru_id)      
+    
+    return result
+    
+    
