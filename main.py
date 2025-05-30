@@ -2,10 +2,10 @@ from fastapi import FastAPI , HTTPException , Request , Response
 import asyncio
 
 import DB
-
+import make_npy
 # uvicorn main:app --host 220.90.180.114:80 --reload
 app = FastAPI()
-
+make_npy.convert_all_videos_to_npy()
 
 # 운동 이름 -> npy
 @app.get("/get/type/")

@@ -34,24 +34,25 @@ def extract_pose_sequence(video_path):
     return np.array(landmarks_seq)
 
 def convert_all_videos_to_npy():
-    
-
     for action in os.listdir(base_dir):
         action_dir = os.path.join(base_dir, action)
         if not os.path.isdir(action_dir):
             continue
+        
+        # 이미 DB에 존재하는 운동 이름이면 skip
+        if DB.Exists_ExerciseName(action):
+            print(f"[SKIP] '{action}' already exists in DB")
+            continue
 
         for file in os.listdir(action_dir):
-            if file.endswith('.mp4'):
-                
+            if file.lower().endswith('.mp4'):
                 #region mp4 -> DB
                 video_path = os.path.join(action_dir, file)
                 landmarks_seq = extract_pose_sequence(video_path)
                 
                 buffer = io.BytesIO()
-                np.save(buffer, landmarks_seq)
+                np.save(buffer, landmarks_seq, allow_pickle=True)
                 buffer.seek(0)
-
                 arr_bytes = buffer.read()
                 print(f'DB저장 시작 : {os.path.splitext(file)[0]}')
                 # DB 저장

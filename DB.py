@@ -9,7 +9,7 @@ from sqlalchemy.orm import sessionmaker
 #endregion
 
 #region 데이터베이스 초기 설정
-SERVER = r"DESKTOP-572CNE4"
+SERVER = r"LAPTOP-5P5I1F6C\SQLEXPRESS"
 DATABASE = "WB41"
 UID = "aaa"
 PWD = "1234"
@@ -136,7 +136,15 @@ def Get_NpyByName(name):
         
         print('리턴완')
         return npy_bytes
-  
+
+def Exists_ExerciseName(name):
+    with pyodbc.connect(Conn) as conn:
+        sql = f"SELECT COUNT(*) FROM {TABLE_B} WHERE exercise_name = ?"
+        cursor = conn.cursor()
+        cursor.execute(sql, (name,))
+        count = cursor.fetchone()[0]
+        return count > 0
+
 # npy파일 , 운동이름 DB에 저장
 def Insert_Exercise(name , arr_bytes):
     
