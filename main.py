@@ -3,7 +3,20 @@ import asyncio
 
 import DB
 import make_npy
-# uvicorn main:app --host 220.90.180.114:80 --reload
+
+#redis
+from contextlib import asynccontextmanager
+import redis.asyncio as redis
+
+# uvicorn main:app --host 220.90.180.114 --port 80 --reload
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    app.state.redis = redis.from_url("redis://localhost")
+    yield
+    await app.state.redis.close()
+
+
 app = FastAPI()
 make_npy.convert_all_videos_to_npy()
 
@@ -23,6 +36,8 @@ async def Get_Npy(exercise):
 # 회원 가입
 @app.post("/user/insert/")
 async def Insert_User(id : str , pw : str , name : str):   
+    
+    print(id , pw ,name)
     try:
         loop = asyncio.get_running_loop()    
         await loop.run_in_executor(None, DB.Insert_User, id , pw , name)                
@@ -36,12 +51,14 @@ async def Insert_User(id : str , pw : str , name : str):
 # 로그인
 @app.get("/user/login/")
 async def Login_User(id : str , pw : str):
+    print(id , pw )
+    
     try:
         
         loop = asyncio.get_running_loop()    
-        nickname , strjson =  await loop.run_in_executor(None, DB.Get_LoginUser , id , pw)                
-                
-        return {"nickname": nickname, "data": strjson}
+        result =  await loop.run_in_executor(None, DB.Get_LoginUser , id , pw)                
+        
+        return result
             
     except HTTPException :
         raise 
@@ -86,11 +103,12 @@ async def Post_Play(request: Request):
             
     except Exception:
         raise HTTPException(status_code=403, detail="BeforeInfo Failed")
-   
-@app.get("/data/get")
-async def Get_BeforeInfo(baru_id : str):
+
+# 현재 날짜 정보 가져오기
+@app.get("/data/get/")
+async def Get_BeforeInfo(id : str):
     loop = asyncio.get_running_loop()    
-    result =  await loop.run_in_executor(None, DB.Get_BeforeInfo, baru_id)      
+    result =  await loop.run_in_executor(None, DB.Get_BeforeInfo, id)      
     
     return result
     

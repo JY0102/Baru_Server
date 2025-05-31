@@ -6,10 +6,12 @@ from sqlalchemy import create_engine , Column, Integer, String, ForeignKey, JSON
 from sqlalchemy.orm import relationship , joinedload
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+
+from datetime import date
 #endregion
 
 #region 데이터베이스 초기 설정
-SERVER = r"LAPTOP-5P5I1F6C\SQLEXPRESS"
+SERVER = r"DESKTOP-572CNE4"
 DATABASE = "WB41"
 UID = "aaa"
 PWD = "1234"
@@ -104,7 +106,8 @@ def Insert_User(id , pw , name):
 # 비동기 ( 로그인 ) 
 # 반환값 -> 유저 닉네임 , 이전 운동기록       
 def Get_LoginUser(id , pw):
-    sql = f"SELECT name FROM {TABLE_A} WHERE id = ? AND pw = ?"
+    
+    sql = f"SELECT name FROM {TABLE_A} WHERE baru_id = ? AND pw = ?"
     params = (id,pw)
     
     row_name = None
@@ -117,7 +120,7 @@ def Get_LoginUser(id , pw):
         if not row_name:
             raise Exception('아이디가 존재하지 않습니다.')
         
-    return row_name , Get_BeforeInfo(id)
+    return {"name" : row_name[0] , "data" : Get_BeforeInfo(id)}
 
 # 이름 -> Npy 파일
 def Get_NpyByName(name):
@@ -269,4 +272,3 @@ def Get_BeforeInfo(baru_id):
             })
 
         return result
-        
